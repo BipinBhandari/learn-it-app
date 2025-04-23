@@ -10,39 +10,29 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   icon: './assets/images/icon.png',
   userInterfaceStyle: 'automatic',
   splash: {
-    backgroundColor: '#ffffff'
+    backgroundColor: '#ffffff',
   },
   updates: {
-    fallbackToCacheTimeout: 0
+    fallbackToCacheTimeout: 0,
   },
-  assetBundlePatterns: [
-    '**/*'
-  ],
+  assetBundlePatterns: ['**/*'],
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.yourcompany.learnit'
+    bundleIdentifier: 'com.yourcompany.learnit',
   },
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/images/adaptive-icon.png',
-      backgroundColor: '#ffffff'
+      backgroundColor: '#ffffff',
     },
-    package: 'com.yourcompany.learnit'
+    package: 'com.yourcompany.learnit',
   },
   web: {
     bundler: 'metro',
     output: 'single',
-    favicon: './assets/images/favicon.png'
+    favicon: './assets/images/favicon.png',
   },
-  plugins: [
-    'expo-router',
-    [
-      'expo-auth-session',
-      {
-        scheme: 'learnit'
-      }
-    ]
-  ],
+  plugins: ['expo-router'],
   extra: {
     FIREBASE_API_KEY: process.env.FIREBASE_API_KEY,
     FIREBASE_AUTH_DOMAIN: process.env.FIREBASE_AUTH_DOMAIN,
@@ -50,5 +40,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     FIREBASE_STORAGE_BUCKET: process.env.FIREBASE_STORAGE_BUCKET,
     FIREBASE_MESSAGING_SENDER_ID: process.env.FIREBASE_MESSAGING_SENDER_ID,
     FIREBASE_APP_ID: process.env.FIREBASE_APP_ID,
-  }
+  },
 });
