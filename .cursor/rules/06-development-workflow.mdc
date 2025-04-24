@@ -1,0 +1,28 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Development Workflow
+
+## Getting Started
+
+1. Install dependencies: `npm install`
+2. Start development server: `npm run dev`
+
+## Project Configuration
+
+- [babel.config.js](mdc:babel.config.js) - Babel configuration
+- [metro.config.js](mdc:metro.config.js) - Metro bundler configuration
+- [.babelrc](mdc:.babelrc) - Additional Babel settings
+
+## Supabase Integration
+
+The app uses Supabase for backend services:
+- Authentication
+- Content storage (lessons, chapters)
+- User progress tracking
+
+## Type Generation
+
+Generate Supabase types: `npm run generate:types`

@@ -1,0 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Learn It App - Project Overview
+
+This is a mobile learning application built with Expo and React Native. It allows users to take interactive code lessons, complete quizzes, and track their learning progress.
+
+## Main Application Structure
+
+- [app/_layout.tsx](mdc:app/_layout.tsx) - Main app layout with authentication flow
+- [app/(tabs)/_layout.tsx](mdc:app/(tabs)/_layout.tsx) - Tab navigation structure
+- [app/(auth)/_layout.tsx](mdc:app/(auth)/_layout.tsx) - Authentication screens layout

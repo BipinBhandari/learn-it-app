@@ -1,0 +1,20 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Technology Stack
+
+## Core Technologies
+
+- [package.json](mdc:package.json) - Main dependencies and scripts
+- [tsconfig.json](mdc:tsconfig.json) - TypeScript configuration
+- [app.config.ts](mdc:app.config.ts) - Expo configuration
+
+## Key Libraries
+
+- Expo & React Native - Mobile app framework
+- Expo Router - File-based routing
+- Supabase - Backend & authentication
+- React Native Markdown Display - Markdown rendering
+- React Native Syntax Highlighter - Code highlighting

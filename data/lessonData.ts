@@ -1,17 +1,20 @@
-import { collection, getDocs, doc, getDoc, query, limit, where } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { createClient } from '@supabase/supabase-js';
 import { LessonItem, Chapter } from '../types';
+
+const supabase = createClient(
+  process.env.EXPO_PUBLIC_SUPABASE_URL!,
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export const getLessons = async (): Promise<LessonItem[]> => {
   try {
-    const lessonsRef = collection(db, 'lessons');
-    const q = query(lessonsRef, limit(3));
-    const querySnapshot = await getDocs(q);
+    const { data, error } = await supabase
+      .from('lessons')
+      .select('*')
+      .limit(3);
     
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as LessonItem[];
+    if (error) throw error;
+    return data || [];
   } catch (error) {
     console.error('Error fetching lessons:', error);
     return [];
@@ -20,13 +23,12 @@ export const getLessons = async (): Promise<LessonItem[]> => {
 
 export const getAllLessons = async (): Promise<LessonItem[]> => {
   try {
-    const lessonsRef = collection(db, 'lessons');
-    const querySnapshot = await getDocs(lessonsRef);
+    const { data, error } = await supabase
+      .from('lessons')
+      .select('*');
     
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as LessonItem[];
+    if (error) throw error;
+    return data || [];
   } catch (error) {
     console.error('Error fetching all lessons:', error);
     return [];
@@ -35,38 +37,16 @@ export const getAllLessons = async (): Promise<LessonItem[]> => {
 
 export const getLessonById = async (id: string): Promise<LessonItem | null> => {
   try {
-    const lessonRef = doc(db, 'lessons', id);
-    const lessonDoc = await getDoc(lessonRef);
+    const { data, error } = await supabase
+      .from('lessons')
+      .select('*')
+      .eq('id', id)
+      .single();
     
-    if (!lessonDoc.exists()) {
-      return null;
-    }
+    if (error) throw error;
+    if (!data) return null;
     
-    // Get chapters for this lesson
-    const chaptersRef = collection(db, 'lessons', id, 'chapters');
-    const chaptersSnapshot = await getDocs(chaptersRef);
-    const chapters = await Promise.all(
-      chaptersSnapshot.docs.map(async (chapterDoc) => {
-        const pagesRef = collection(db, 'lessons', id, 'chapters', chapterDoc.id, 'pages');
-        const pagesSnapshot = await getDocs(pagesRef);
-        const pages = pagesSnapshot.docs.map(pageDoc => ({
-          id: pageDoc.id,
-          ...pageDoc.data()
-        }));
-        
-        return {
-          id: chapterDoc.id,
-          ...chapterDoc.data(),
-          pages
-        };
-      })
-    );
-    
-    return {
-      id: lessonDoc.id,
-      ...lessonDoc.data(),
-      chapters
-    } as LessonItem;
+    return data as LessonItem;
   } catch (error) {
     console.error('Error fetching lesson by ID:', error);
     return null;
@@ -75,26 +55,21 @@ export const getLessonById = async (id: string): Promise<LessonItem | null> => {
 
 export const getChapterById = async (lessonId: string, chapterId: string): Promise<Chapter | null> => {
   try {
-    const chapterRef = doc(db, 'lessons', lessonId, 'chapters', chapterId);
-    const chapterDoc = await getDoc(chapterRef);
+    // Since chapters are stored in the lessons.content JSONB field,
+    // we need to fetch the lesson first and then find the chapter
+    const { data: lesson, error } = await supabase
+      .from('lessons')
+      .select('content')
+      .eq('id', lessonId)
+      .single();
     
-    if (!chapterDoc.exists()) {
-      return null;
-    }
+    if (error) throw error;
+    if (!lesson) return null;
     
-    // Get pages for this chapter
-    const pagesRef = collection(db, 'lessons', lessonId, 'chapters', chapterId, 'pages');
-    const pagesSnapshot = await getDocs(pagesRef);
-    const pages = pagesSnapshot.docs.map(pageDoc => ({
-      id: pageDoc.id,
-      ...pageDoc.data()
-    }));
+    const content = lesson.content as { chapters?: Chapter[] };
+    const chapter = content.chapters?.find(ch => ch.id === chapterId);
     
-    return {
-      id: chapterDoc.id,
-      ...chapterDoc.data(),
-      pages
-    } as Chapter;
+    return chapter || null;
   } catch (error) {
     console.error('Error fetching chapter by ID:', error);
     return null;

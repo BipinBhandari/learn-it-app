@@ -2,16 +2,50 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronRight } from 'lucide-react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import { useAuth } from '../../hooks/useAuth';
+import { useTopics } from '../../hooks/useTopics';
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const {
+    topics,
+    selectedTopics,
+    loading,
+    error,
+    saving,
+    toggleTopic,
+    savePreferences,
+  } = useTopics(user?.id);
 
-  const interests = [
-    'Technology', 'Science', 'Design', 'Business',
-    'Innovation', 'Health', 'Personal growth', 'Leadership',
-    'Communication', 'Productivity', 'Creativity', 'Education'
-  ];
+  const handleContinue = async () => {
+    if (selectedTopics.length > 0) {
+      try {
+        await savePreferences();
+      } catch (error) {
+        // Error is handled in the hook
+        return;
+      }
+    }
+    router.push('/sign-in');
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.loadingText}>Loading topics...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.errorText}>{error.message}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -25,14 +59,27 @@ export default function OnboardingScreen() {
         </Text>
       </Animated.View>
 
-      <View style={styles.interestsContainer}>
-        {interests.map((interest, index) => (
+      <View style={styles.topicsContainer}>
+        {topics.map((topic, index) => (
           <Animated.View
-            key={interest}
-            entering={FadeIn.delay(300 + index * 50)}
+            key={topic.id}
+            entering={FadeInDown.delay(300 + index * 50)}
           >
-            <Pressable style={styles.interestChip}>
-              <Text style={styles.interestText}>{interest}</Text>
+            <Pressable 
+              style={[
+                styles.topicChip,
+                selectedTopics.includes(topic.id) && styles.selectedTopic
+              ]}
+              onPress={() => toggleTopic(topic.id)}
+            >
+              <Text 
+                style={[
+                  styles.topicText,
+                  selectedTopics.includes(topic.id) && styles.selectedTopicText
+                ]}
+              >
+                {topic.name}
+              </Text>
             </Pressable>
           </Animated.View>
         ))}
@@ -40,16 +87,23 @@ export default function OnboardingScreen() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom || 16 }]}>
         <Pressable 
-          style={styles.continueButton}
-          onPress={() => router.push('/sign-in')}
+          style={[
+            styles.continueButton,
+            saving && styles.continueButtonDisabled
+          ]}
+          onPress={handleContinue}
+          disabled={saving}
         >
-          <Text style={styles.continueText}>Continue</Text>
-          <ChevronRight size={20} color="#fff" />
+          <Text style={styles.continueText}>
+            {saving ? 'Saving...' : 'Continue'}
+          </Text>
+          {!saving && <ChevronRight size={20} color="#fff" />}
         </Pressable>
 
         <Pressable 
           style={styles.skipButton}
           onPress={() => router.push('/sign-in')}
+          disabled={saving}
         >
           <Text style={styles.skipText}>Skip for now</Text>
         </Pressable>
@@ -62,6 +116,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     paddingHorizontal: 24,
@@ -79,13 +137,13 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     lineHeight: 24,
   },
-  interestsContainer: {
+  topicsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     paddingHorizontal: 16,
     gap: 8,
   },
-  interestChip: {
+  topicChip: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 20,
@@ -93,10 +151,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#374151',
   },
-  interestText: {
+  selectedTopic: {
+    backgroundColor: '#ef4444',
+    borderColor: '#ef4444',
+  },
+  topicText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: '500',
+  },
+  selectedTopicText: {
+    color: '#fff',
   },
   footer: {
     position: 'absolute',
@@ -115,6 +180,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
+  continueButtonDisabled: {
+    opacity: 0.7,
+  },
   continueText: {
     color: '#fff',
     fontSize: 16,
@@ -128,5 +196,15 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     fontSize: 14,
     fontWeight: '500',
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 16,
+    textAlign: 'center',
+    paddingHorizontal: 24,
   },
 });

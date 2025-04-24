@@ -3,41 +3,63 @@ import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, MoveHorizontal as MoreHorizontal, Bookmark, Share2 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { getLessonById } from '../../data/lessonData';
-import { LessonItem, Chapter } from '../../types';
+import { useChapters } from '../../hooks/useChapters';
+import { Tables } from '../../lib/database.types';
 import ProgressRing from '../../components/ProgressRing';
+
+type Lesson = Tables['lessons']['Row'];
+type Chapter = Tables['chapters']['Row'];
 
 export default function LessonDetailsScreen() {
   const { id } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
-  const [lesson, setLesson] = useState<LessonItem | null>(null);
-  
+  const [lesson, setLesson] = useState<Lesson | null>(null);
+  const { chapters, loading: chaptersLoading, error: chaptersError } = useChapters(id as string);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
   useEffect(() => {
+    async function loadLesson() {
+      try {
+        const response = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/rest/v1/lessons?id=eq.${id}`, {
+          headers: {
+            'apikey': process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!,
+            'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
+        });
+        const data = await response.json();
+        setLesson(data[0]);
+      } catch (e) {
+        setError(e as Error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
     if (id) {
-      const lessonData = getLessonById(Number(id));
-      setLesson(lessonData);
+      loadLesson();
     }
   }, [id]);
-  
+
   const handleStartLesson = () => {
-    if (lesson) {
-      router.push(`/chapter/${lesson.id}/1`);
+    if (chapters.length > 0) {
+      router.push(`/chapter/${id}/${chapters[0].id}`);
     }
   };
-  
+
   const handleContinueLesson = () => {
-    if (lesson) {
-      // Navigate to the last accessed chapter or the next incomplete one
-      const nextChapterId = lesson.lastAccessedChapter || 1;
-      router.push(`/chapter/${lesson.id}/${nextChapterId}`);
+    // Find the first incomplete chapter or the last accessed one
+    const nextChapter = chapters.find(chapter => !chapter.completed) || chapters[0];
+    if (nextChapter) {
+      router.push(`/chapter/${id}/${nextChapter.id}`);
     }
   };
-  
+
   const renderChapter = (chapter: Chapter, index: number) => (
     <Pressable 
       key={chapter.id}
       style={styles.chapterItem}
-      onPress={() => router.push(`/chapter/${lesson?.id}/${chapter.id}`)}
+      onPress={() => router.push(`/chapter/${id}/${chapter.id}`)}
     >
       <View style={styles.chapterNumber}>
         <Text style={styles.chapterNumberText}>{index + 1}</Text>
@@ -46,26 +68,40 @@ export default function LessonDetailsScreen() {
         <Text style={styles.chapterTitle}>{chapter.title}</Text>
         <Text style={styles.chapterDescription}>{chapter.description}</Text>
         <View style={styles.chapterMeta}>
-          <Text style={styles.chapterPages}>{chapter.pagesCount} pages</Text>
-          <Text style={styles.chapterDuration}>{chapter.estimatedTime} min</Text>
+          <Text style={styles.chapterDuration}>{chapter.estimated_duration} min</Text>
         </View>
       </View>
-      {chapter.completed ? (
-        <View style={styles.completedBadge}>
-          <Text style={styles.completedText}>Completed</Text>
-        </View>
-      ) : null}
     </Pressable>
   );
-  
-  if (!lesson) {
+
+  if (loading || chaptersLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text>Loading lesson...</Text>
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.loadingText}>Loading lesson...</Text>
       </View>
     );
   }
-  
+
+  if (error || chaptersError) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.errorText}>
+          {error?.message || chaptersError?.message || 'Failed to load lesson'}
+        </Text>
+      </View>
+    );
+  }
+
+  if (!lesson) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.errorText}>Lesson not found</Text>
+      </View>
+    );
+  }
+
+  const progress = 0; // Calculate based on completed chapters
+
   return (
     <>
       <Stack.Screen
@@ -79,21 +115,21 @@ export default function LessonDetailsScreen() {
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <ChevronLeft size={24} color="#111827" />
+            <ChevronLeft size={24} color="#fff" />
           </Pressable>
           <View style={styles.headerActions}>
             <Pressable style={styles.actionButton}>
-              <Bookmark size={24} color="#111827" />
+              <Bookmark size={24} color="#fff" />
             </Pressable>
             <Pressable style={styles.actionButton}>
-              <Share2 size={24} color="#111827" />
+              <Share2 size={24} color="#fff" />
             </Pressable>
             <Pressable style={styles.actionButton}>
-              <MoreHorizontal size={24} color="#111827" />
+              <MoreHorizontal size={24} color="#fff" />
             </Pressable>
           </View>
         </View>
-        
+
         <ScrollView
           style={styles.scrollContainer}
           contentContainerStyle={styles.scrollContent}
@@ -101,31 +137,33 @@ export default function LessonDetailsScreen() {
         >
           <View style={styles.lessonHeader}>
             <Text style={styles.lessonTitle}>{lesson.title}</Text>
-            <Text style={styles.lessonDescription}>{lesson.description}</Text>
-            
+            <Text style={styles.lessonDescription}>
+              {(lesson.content as any).description}
+            </Text>
+
             <View style={styles.progressSection}>
               <ProgressRing
-                progress={lesson.progress}
+                progress={progress}
                 size={64}
                 strokeWidth={6}
               />
               <View style={styles.progressDetails}>
-                <Text style={styles.progressText}>{lesson.progress}% Complete</Text>
+                <Text style={styles.progressText}>{progress}% Complete</Text>
                 <Text style={styles.lessonStats}>
-                  {lesson.chaptersCount} chapters • {lesson.estimatedTime} min total
+                  {chapters.length} chapters • {lesson.estimated_duration} min total
                 </Text>
               </View>
             </View>
           </View>
-          
+
           <View style={styles.chaptersSection}>
             <Text style={styles.sectionTitle}>Chapters</Text>
-            {lesson.chapters.map(renderChapter)}
+            {chapters.map((chapter, index) => renderChapter(chapter, index))}
           </View>
         </ScrollView>
-        
+
         <View style={[styles.footer, { paddingBottom: insets.bottom || 16 }]}>
-          {lesson.progress > 0 ? (
+          {progress > 0 ? (
             <Pressable
               style={styles.continueButton}
               onPress={handleContinueLesson}
@@ -149,7 +187,11 @@ export default function LessonDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#000',
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',
@@ -162,7 +204,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#1F2937',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -173,15 +215,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#1F2937',
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 12,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   scrollContainer: {
     flex: 1,
@@ -197,12 +234,12 @@ const styles = StyleSheet.create({
   lessonTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#111827',
+    color: '#fff',
     marginBottom: 8,
   },
   lessonDescription: {
     fontSize: 16,
-    color: '#4B5563',
+    color: '#9CA3AF',
     lineHeight: 24,
     marginBottom: 24,
   },
@@ -217,7 +254,7 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: '#fff',
     marginBottom: 4,
   },
   lessonStats: {
@@ -230,27 +267,22 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
+    color: '#fff',
     marginBottom: 16,
   },
   chapterItem: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1F2937',
     borderRadius: 12,
     marginBottom: 16,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
     padding: 16,
   },
   chapterNumber: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#3B82F620',
+    backgroundColor: '#374151',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -258,7 +290,7 @@ const styles = StyleSheet.create({
   chapterNumberText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#3B82F6',
+    color: '#ef4444',
   },
   chapterContent: {
     flex: 1,
@@ -266,48 +298,30 @@ const styles = StyleSheet.create({
   chapterTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: '#fff',
     marginBottom: 4,
   },
   chapterDescription: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#9CA3AF',
     marginBottom: 8,
   },
   chapterMeta: {
     flexDirection: 'row',
   },
-  chapterPages: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginRight: 12,
-  },
   chapterDuration: {
     fontSize: 12,
-    color: '#9CA3AF',
-  },
-  completedBadge: {
-    backgroundColor: '#10B98120',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
-    marginLeft: 8,
-  },
-  completedText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#10B981',
+    color: '#6B7280',
   },
   footer: {
     paddingHorizontal: 24,
     paddingTop: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1F2937',
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: '#374151',
   },
   startButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#ef4444',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -315,10 +329,10 @@ const styles = StyleSheet.create({
   startButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#fff',
   },
   continueButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#ef4444',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -326,6 +340,16 @@ const styles = StyleSheet.create({
   continueButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#fff',
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 16,
+    textAlign: 'center',
+    paddingHorizontal: 24,
   },
 });

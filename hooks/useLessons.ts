@@ -2,26 +2,26 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Tables } from '../lib/database.types';
 
-type LessonWithProgress = Tables['lessons']['Row'] & {
-  user_progress: Tables['user_progress']['Row'][];
+type ChapterWithSlides = Tables['chapters']['Row'] & {
+  slides: Tables['slides']['Row'][];
 };
 
 export function useLessons(filters?: {
-  difficulty?: Tables['lessons']['Row']['difficulty'];
+  difficulty?: Tables['chapters']['Row']['difficulty'];
   category?: string;
 }) {
-  const [lessons, setLessons] = useState<LessonWithProgress[]>([]);
+  const [chapters, setChapters] = useState<ChapterWithSlides[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    async function loadLessons() {
+    async function loadChapters() {
       try {
         let query = supabase
-          .from('lessons')
+          .from('chapters')
           .select(`
             *,
-            user_progress (*)
+            slides (*)
           `);
 
         if (filters?.difficulty) {
@@ -34,7 +34,7 @@ export function useLessons(filters?: {
 
         const { data, error } = await query;
         if (error) throw error;
-        setLessons(data as LessonWithProgress[]);
+        setChapters(data as ChapterWithSlides[]);
       } catch (e) {
         setError(e as Error);
       } finally {
@@ -42,23 +42,23 @@ export function useLessons(filters?: {
       }
     }
 
-    loadLessons();
+    loadChapters();
 
     // Subscribe to realtime changes
     const subscription = supabase
-      .channel('public:lessons')
+      .channel('public:chapters')
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public',
-        table: 'lessons'
+        table: 'chapters'
       }, payload => {
-        setLessons(current => {
+        setChapters(current => {
           const updated = [...current];
-          const index = updated.findIndex(lesson => lesson.id === payload.new.id);
+          const index = updated.findIndex(chapter => chapter.id === payload.new.id);
           if (index >= 0) {
             updated[index] = { ...updated[index], ...payload.new };
           } else {
-            updated.push(payload.new as LessonWithProgress);
+            updated.push(payload.new as ChapterWithSlides);
           }
           return updated;
         });
@@ -70,5 +70,5 @@ export function useLessons(filters?: {
     };
   }, [filters?.difficulty, filters?.category]);
 
-  return { lessons, loading, error };
+  return { lessons: chapters, loading, error };
 }

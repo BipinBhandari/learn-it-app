@@ -1,0 +1,29 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Data and Hooks
+
+## Data Management
+
+- [data/lessonData.ts](mdc:data/lessonData.ts) - Functions for fetching lesson data from Supabase
+
+## Custom Hooks
+
+### Authentication and User
+
+- [hooks/useAuth.ts](mdc:hooks/useAuth.ts) - Handles user authentication
+- [hooks/useProfile.ts](mdc:hooks/useProfile.ts) - User profile data and management
+
+### Learning Content
+
+- [hooks/useLessons.ts](mdc:hooks/useLessons.ts) - Access lesson data
+- [hooks/useChapters.ts](mdc:hooks/useChapters.ts) - Manage chapter content
+- [hooks/useSlides.ts](mdc:hooks/useSlides.ts) - Handle slide content
+- [hooks/useLearningPaths.ts](mdc:hooks/useLearningPaths.ts) - Manage learning paths
+
+### Learning Progress
+
+- [hooks/useTopics.ts](mdc:hooks/useTopics.ts) - Topic data management
+- [hooks/useAchievements.ts](mdc:hooks/useAchievements.ts) - User achievements tracking

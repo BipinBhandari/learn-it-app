@@ -1,0 +1,26 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Navigation Flow
+
+The app uses Expo Router for navigation with the following structure:
+
+## Main Screens
+
+- [app/(tabs)/index.tsx](mdc:app/(tabs)/index.tsx) - Home/Dashboard
+- [app/(tabs)/library.tsx](mdc:app/(tabs)/library.tsx) - Course Library
+- [app/(tabs)/achievements.tsx](mdc:app/(tabs)/achievements.tsx) - User achievements
+- [app/(tabs)/profile.tsx](mdc:app/(tabs)/profile.tsx) - User profile
+
+## Auth Flow
+
+- [app/(auth)/onboarding.tsx](mdc:app/(auth)/onboarding.tsx) - Onboarding screen
+- [app/(auth)/sign-in.tsx](mdc:app/(auth)/sign-in.tsx) - Login screen
+- [app/(auth)/sign-up.tsx](mdc:app/(auth)/sign-up.tsx) - Registration screen
+
+## Content Screens
+
+- [app/chapter/[chapterId].tsx](mdc:app/chapter/[chapterId].tsx) - Chapter content view
+- [app/lesson/[lessonId].tsx](mdc:app/lesson/[lessonId].tsx) - Lesson details view

@@ -27,11 +27,11 @@ export default function HomeScreen() {
     switch (activeTab) {
       case 'in-progress':
         return lessons.filter(lesson => 
-          lesson.user_progress.some(p => p.status === 'in_progress')
+          lesson.user_progress?.some(p => p.status === 'in_progress')
         );
       case 'completed':
         return lessons.filter(lesson => 
-          lesson.user_progress.some(p => p.status === 'completed')
+          lesson.user_progress?.some(p => p.status === 'completed')
         );
       default:
         return lessons;
@@ -39,7 +39,10 @@ export default function HomeScreen() {
   };
 
   const getProgress = (lesson: LessonWithProgress) => {
-    if (!lesson.user_progress.length) return 0;
+    if (!lesson.user_progress || !Array.isArray(lesson.user_progress) || lesson.user_progress.length === 0) {
+      return 0;
+    }
+    
     const progress = lesson.user_progress[0];
     switch (progress.status) {
       case 'completed':
@@ -76,11 +79,11 @@ export default function HomeScreen() {
           />
         </View>
         <Text style={styles.lessonDescription}>
-          {JSON.parse(item.content as string).description}
+          {(item.content as any)?.description || 'No description available'}
         </Text>
         <View style={styles.lessonMeta}>
           <Text style={styles.lessonChapters}>
-            {JSON.parse(item.content as string).sections.length} chapters
+            {((item.content as any)?.sections?.length || 0)} chapters
           </Text>
           <Text style={styles.lessonDuration}>{item.estimated_duration} min</Text>
         </View>
@@ -91,7 +94,7 @@ export default function HomeScreen() {
   if (!user) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <Text>Please sign in to view lessons</Text>
+        <Text style={styles.messageText}>Please sign in to view lessons</Text>
       </View>
     );
   }
@@ -99,7 +102,7 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
-        <Text>Loading lessons...</Text>
+        <Text style={styles.messageText}>Loading lessons...</Text>
       </View>
     );
   }
@@ -154,7 +157,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#000',
   },
   centerContent: {
     justifyContent: 'center',
@@ -173,7 +176,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#111827',
+    color: '#fff',
     marginTop: 4,
   },
   tabContainer: {
@@ -189,7 +192,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   activeTab: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#ef4444',
   },
   tabText: {
     fontSize: 14,
@@ -203,7 +206,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   lessonCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1F2937',
     borderRadius: 16,
     marginBottom: 16,
     overflow: 'hidden',
@@ -238,13 +241,13 @@ const styles = StyleSheet.create({
   lessonTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: '#fff',
     flex: 1,
     marginRight: 8,
   },
   lessonDescription: {
     fontSize: 14,
-    color: '#4B5563',
+    color: '#9CA3AF',
     marginBottom: 12,
     lineHeight: 20,
   },
@@ -262,9 +265,14 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '500',
   },
+  messageText: {
+    color: '#fff',
+    fontSize: 16,
+  },
   errorText: {
-    color: '#EF4444',
-    marginBottom: 16,
+    color: '#ef4444',
+    fontSize: 16,
     textAlign: 'center',
+    paddingHorizontal: 24,
   },
 });

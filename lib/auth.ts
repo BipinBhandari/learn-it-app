@@ -1,5 +1,4 @@
 import { supabase } from './supabase';
-import { User } from '@supabase/supabase-js';
 import { makeRedirectUri } from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
@@ -81,29 +80,4 @@ export async function signInWithGoogle() {
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
-}
-
-export async function getCurrentUser(): Promise<User | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
-}
-
-export async function updateProfile(userId: string, updates: {
-  bio?: string;
-  learning_streak?: number;
-  total_points?: number;
-  preferences?: {
-    difficulty_level: 'beginner' | 'intermediate' | 'advanced';
-    study_reminders: boolean;
-  };
-}) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(updates)
-    .eq('user_id', userId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return data;
 }
